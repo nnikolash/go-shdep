@@ -11,16 +11,27 @@ import (
 var NoHandler = func(n interface{}) {}
 
 type UpdateSubscription[Ctx any] interface {
+	// Subscribe to the updates of this node.
 	Subscribe(node Node[Ctx])
+
+	// Check that this node has been updated. Can be used, when processing
+	// updates and need to know which of subscriptions has been updated.
 	HasUpdated() bool
 }
 
+// Node is an element of update propagation tree.
+// It can subscribe on other nodes and receive notifications about update from them.
 type Node[Ctx any] interface {
 	UpdateSubscription[Ctx]
 
+	// Notify direct subscribers, that somethings changed.
 	NotifyUpdated(ctx Ctx, evtTime time.Time)
-	SetUpdateHandler(onSubscriptionUpdated func(ctx Ctx, evtTime time.Time)) // TODO: this method should be available only for the parent, but for the users of parent
 
+	// Set function, which will handle notification about updates from subscriptions.
+	// TODO: this method should be available only for the parent, but not for the users of parent.
+	SetUpdateHandler(onSubscriptionUpdated func(ctx Ctx, evtTime time.Time))
+
+	// Implementation details
 	self() Node[Ctx]
 	getDependencies(dest *[]dependencyEntry[Ctx])
 	addSubscription(subscription Node[Ctx])
@@ -116,7 +127,9 @@ func (n *NodeBase[Ctx]) getUpdateOrder() ([]Node[Ctx], error) {
 		dependenciesMap[entry.Node] = entry.Dependants
 	}
 
-	return utils.StableTopologicalSortWithSortedKeys(dependenciesMap, stability)
+	r, err := utils.StableTopologicalSortWithSortedKeys(dependenciesMap, stability)
+
+	return r, err
 }
 
 func (n *NodeBase[Ctx]) handleSubscriptionsUpdated(ctx Ctx, evtTime time.Time) {
