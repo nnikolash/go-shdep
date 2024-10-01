@@ -1,4 +1,4 @@
-# go-shdep - Managing shared objects and their updated in Go
+# go-shdep - Sharing objects and their updates in Go
 
 ## What this library can do?
 
