@@ -289,6 +289,8 @@ Function `NotifyUpdated()` only notified subscribes, that something has changes.
 This storage accumulates events, so that subscribers can pull them when processing notification about update.
 Each subscriber pulls event separately. Events are stored until all of "pullers" retrieve them.
 
+There is also `SharedObjectWithEventBase` helper exists as a version of `SharedObjectBase` helper but with built-it `EventPullStorage`.
+
 **WARNING:** Don't forget to periodically pull all events for each puller created by  `NewPuller()`. Calling `NewPuller()` and then not using it will lead to memory leak.
 
 ###### Define event structure
@@ -380,7 +382,7 @@ This helper does three main things:
 * manages `updtree.Node` to provide method `NotifyUpdated()`,
 * calculates hash of the object based on its parameters, which then used as object ID.
 
-It is not mandatory to use it, but usually it is convenient. You can create your own base, e.g. with embedded `EventPullStorage`.
+It is not mandatory to use it, but usually it is convenient. You can create your own base, e.g. with built-in `EventPullStorage`, with logger, with storing of init params etc.
 
 **WARNING:** It is critical to pass ALL parameters into `NewSharedObjectBase()`. If not all parameters are passed, then objects with different parameters might have same ID and will be considered as "equal" or "same" upon registration. This will lead to unexpected and confusing behaviour and your calculations will be incorrect.
 
