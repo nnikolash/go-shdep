@@ -85,6 +85,7 @@ type EventPuller[Event any] struct {
 	cursor int
 }
 
+// Pulls all events from the storage published since last pull.
 func (p *EventPuller[Event]) Pull() []AccumulatedEvent[Event] {
 	events := p.acc.getEvents(p.cursor)
 	if len(events) == 0 {
@@ -94,4 +95,14 @@ func (p *EventPuller[Event]) Pull() []AccumulatedEvent[Event] {
 	p.cursor += len(events)
 
 	return events
+}
+
+// Discards all events except the last one. If no events were published since last pull, returns nil.
+func (p *EventPuller[Event]) Last() (lastPublishedEventIfExists *Event) {
+	events := p.Pull()
+	if len(events) == 0 {
+		return nil
+	}
+
+	return events[len(events)-1].Event
 }

@@ -115,6 +115,14 @@ func (o *SharedObjectBase[Ctx, InitParams]) HasUpdated() bool {
 
 var _ SharedObject[context.Context, string] = &SharedObjectBase[context.Context, string]{}
 
+type EventPuller[Event any] interface {
+	// Pulls all events from the storage published since last pull.
+	Pull() []updtree.AccumulatedEvent[Event]
+
+	// Discards all events except the last one. If no events were published since last pull, returns nil.
+	Last() (lastPublishedEventIfExists *Event)
+}
+
 // NewSharedObjectBaseWithEvent creates new SharedObjectBaseWithEvent.
 // SharedObjectBaseWithEvent is same as SharedObjectBase, but with event publishing capabilities.
 func NewSharedObjectBaseWithEvent[Ctx, InitParams any, Event any](name string, params ...interface{}) SharedObjectBaseWithEvent[Ctx, InitParams, Event] {
@@ -132,7 +140,7 @@ type SharedObjectBaseWithEvent[Ctx, InitParams any, Event any] struct {
 
 // NewEventPuller returns new event puller for this object.
 // Events must be pulled from it at least periodically, or it will cause memory leak.
-func (o *SharedObjectBaseWithEvent[Ctx, InitParams, Event]) NewEventPuller() *updtree.EventPuller[Event] {
+func (o *SharedObjectBaseWithEvent[Ctx, InitParams, Event]) NewEventPuller() EventPuller[Event] {
 	return o.evtPublisher.NewPuller()
 }
 
