@@ -8,8 +8,6 @@ import (
 	"github.com/nnikolash/go-shdep/utils"
 )
 
-var NoHandler = func(n interface{}) {}
-
 type UpdateSubscription[Ctx any] interface {
 	// Subscribe to the updates of this node.
 	Subscribe(node Node[Ctx])
@@ -42,6 +40,12 @@ type Node[Ctx any] interface {
 }
 
 func NewNode[Ctx any](name string, onSubscriptionUpdated func(ctx Ctx, evtTime time.Time)) *NodeBase[Ctx] {
+	if onSubscriptionUpdated == nil {
+		onSubscriptionUpdated = func(ctx Ctx, evtTime time.Time) {
+			panic(fmt.Sprintf("onSubscriptionUpdated was not set for node %s", name))
+		}
+	}
+
 	return &NodeBase[Ctx]{
 		name:                  name,
 		onSubscriptionUpdated: onSubscriptionUpdated,
@@ -63,9 +67,9 @@ type NodeBase[Ctx any] struct {
 
 var _ Node[interface{}] = &NodeBase[interface{}]{}
 
-func (n *NodeBase[Ctx]) Subscribe(node Node[Ctx]) {
-	n.subscribers = append(n.subscribers, node.self())
-	node.addSubscription(n)
+func (n *NodeBase[Ctx]) Subscribe(subscriber Node[Ctx]) {
+	n.subscribers = append(n.subscribers, subscriber.self())
+	subscriber.addSubscription(n)
 }
 
 func (n *NodeBase[Ctx]) SetUpdateHandler(onSubscriptionUpdated func(ctx Ctx, evtTime time.Time)) {

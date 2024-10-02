@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nnikolash/go-shdep"
 	"github.com/nnikolash/go-shdep/examples/trading/shobj"
 	"github.com/nnikolash/go-shdep/objstore"
+	"github.com/nnikolash/go-shdep/updtree"
 )
 
 // Calculates moving average of asset price.
@@ -23,7 +23,7 @@ func NewMAIndicator(cfg PriceProviderConfig) *MAIndicator {
 		priceProvider:    NewPriceProvider(cfg.Asset),
 		asset:            cfg.Asset,
 		period:           cfg.Period,
-		eventsPublisher:  shdep.NewEventsPullStorage[MAEvent](),
+		eventsPublisher:  updtree.NewEventsPullStorage[MAEvent](),
 	}
 
 	// NOTE that we must set this to be able to receive updates from dependencies.
@@ -38,7 +38,7 @@ type MAIndicator struct {
 	asset           string
 	period          int
 	priceProvider   *PriceProvider
-	eventsPublisher *shdep.EventsPullStorage[MAEvent]
+	eventsPublisher *updtree.EventsPullStorage[MAEvent]
 
 	lastPrices   []float64
 	currentValue float64
@@ -52,7 +52,7 @@ type MAEvent struct {
 	MA     float64
 }
 
-func (s *MAIndicator) NewEventPuller() *shdep.EventPuller[MAEvent] {
+func (s *MAIndicator) NewEventPuller() *updtree.EventPuller[MAEvent] {
 	return s.eventsPublisher.NewPuller()
 }
 

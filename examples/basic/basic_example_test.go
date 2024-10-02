@@ -178,6 +178,8 @@ func (m *Multiplier) onDependenciesUpdated(ctx context.Context, evtTime time.Tim
 }
 
 func TestExampleBasic(t *testing.T) {
+	t.Parallel()
+
 	for i := 0; i < 100; i++ {
 		succeded := t.Run(fmt.Sprintf("TestExampleBasic/%v", i), func(t *testing.T) {
 			store := NewSharedStore(nil)

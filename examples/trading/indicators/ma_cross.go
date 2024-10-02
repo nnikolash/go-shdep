@@ -7,6 +7,7 @@ import (
 	"github.com/nnikolash/go-shdep"
 	"github.com/nnikolash/go-shdep/examples/trading/shobj"
 	"github.com/nnikolash/go-shdep/objstore"
+	"github.com/nnikolash/go-shdep/updtree"
 )
 
 func NewMACrossIndicator(asset string, maPeriodFast, maPeriodSlow int) *MACrossIndicator {
@@ -34,9 +35,9 @@ type MACrossIndicator struct {
 	shobj.SharedObjectBase
 
 	ma1       *MAIndicator
-	ma1Events *shdep.EventPuller[MAEvent]
+	ma1Events *updtree.EventPuller[MAEvent]
 	ma2       *MAIndicator
-	ma2Events *shdep.EventPuller[MAEvent]
+	ma2Events *updtree.EventPuller[MAEvent]
 
 	state int
 }
