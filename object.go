@@ -149,3 +149,13 @@ func (o *SharedObjectBaseWithEvent[Ctx, InitParams, Event]) PublishEvent(ctx Ctx
 	o.evtPublisher.Publish(evt)
 	o.NotifyUpdated(ctx, evtTime)
 }
+
+// PublishEventWithoutNotify publishes an event into the storage without
+// triggering the NotifyUpdated cascade. Intended primarily for tests that
+// want to exercise event-pull behavior without constructing a full Ctx, or
+// for callers that need to batch several events before a single notification.
+//
+// Production code that drives the update tree should use PublishEvent.
+func (o *SharedObjectBaseWithEvent[Ctx, InitParams, Event]) PublishEventWithoutNotify(evt Event) {
+	o.evtPublisher.Publish(evt)
+}

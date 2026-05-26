@@ -395,3 +395,82 @@ Interface `SharedObject` and helper `SharedObjectBase` are created to provide a 
 See examples in `examples` folder or in test files `*_test.go`.
 
 ---
+
+## Recommended pattern for the `Ctx` generic parameter
+
+`SharedObject[Ctx, P]` is intentionally generic in `Ctx`: shdep does not care
+what flows through. It only carries the value to update handlers. Because
+`Ctx` propagates into every subscriber and every base type in your dependency
+tree, the choice of type is sticky — every downstream file that touches a
+shared object will see it.
+
+**Prefer a narrow interface, not a concrete runtime type.**
+
+```go
+// Avoid — locks every downstream type to a specific runtime.
+type Indicator = shdep.SharedObjectBase[coro.Context, *InitParams]
+
+// Prefer — a narrow interface that only exposes what handlers actually need.
+type Scheduler interface {
+    Yield()
+    // ... only what update handlers need
+}
+
+type Indicator = shdep.SharedObjectBase[Scheduler, *InitParams]
+```
+
+With the interface version you can swap the underlying runtime (for tests, for
+replay, for a different scheduler implementation) without touching downstream
+types. With a concrete `coro.Context` (or any other concrete type) the lock-in
+propagates throughout the dependency graph.
+
+`context.Context` from the standard library is a reasonable default for cases
+where you only need cancellation/values.
+
+## Ordering contract
+
+shdep's ordering guarantees are narrower than they might appear at first
+glance. Be explicit about which guarantee you rely on.
+
+**Within a single cascade** (one call to `NotifyUpdated`):
+
+- Update handlers are invoked in topological order over the
+  `Subscribe`/`SubscribeObj` graph.
+- A node with multiple upstream paths receives **one** handler invocation per
+  cascade — after all its upstreams have fired.
+- A handler may call `NotifyUpdated` on its own node to extend the cascade;
+  this is folded into the current pass, not started as a new cascade.
+
+**Across cascades** (multiple independent calls to `NotifyUpdated`):
+
+- shdep does **not** reorder cascades. They run sequentially, in the order
+  `NotifyUpdated` is called.
+- shdep does **not** look at `evtTime`. If you pass non-chronological times
+  (e.g. during backtest replay with out-of-order ticks), handlers receive them
+  in call order. Restoring chronological order is the caller's responsibility.
+- There is no cross-source priority mechanism. Multiple top-level sources
+  (e.g. HTF + LTF feeds in a multi-timeframe strategy) are independent — the
+  caller decides the firing order.
+
+**Threading:** the update tree is not thread-safe. Use one update lock per
+store and serialize external notifications through it (see `ExternalUpdateLock`
+in the basic example).
+
+See `updtree/ordering_contract_test.go` for executable specifications of these
+guarantees.
+
+## Testing without a real `Ctx`
+
+`PublishEvent(ctx, evtTime, evt)` triggers a notify cascade and therefore
+requires a usable `Ctx`. If your `Ctx` is heavy (full event loop, scheduler,
+etc.) and a unit test only cares about the event-pull side of the API, use:
+
+```go
+obj.PublishEventWithoutNotify(evt)
+```
+
+It writes the event into the storage but skips `NotifyUpdated`, so handlers
+that would need a real `Ctx` are not invoked. Production code that drives the
+dependency tree must still use `PublishEvent`.
+
+---
